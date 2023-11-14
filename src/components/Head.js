@@ -1,13 +1,47 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import hamburgerIcon from "../images/hamburgerIcon.png";
 import youtubeLogo from "../images/youtubeLogo.png";
 import userIcon from "../images/userIcon.png";
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { toggleMenu } from '../utils/appSlice';
+import { YOUTUBE_SEARCH_API } from '../utils/constants';
+import store from '../utils/store';
+import { cacheResult } from '../utils/searchSlice';
 
 
 const Head = () => {
+    const [searchQuery, setSearchQuery] = useState("");
+    const [suggestions, setSuggestions] = useState([]);
+    const [showSuggestions, setshowSuggestions] = useState(false);
+    const searchCache = useSelector((store) => store.search);//to get the access of the cache we will subscribe to it using useSelector
     const dispatch = useDispatch();
+
+    useEffect(() => {
+        // console.log(searchQuery);
+
+        const timer = setTimeout(() => {
+            if(searchCache[searchQuery]){ //If present in cache, then dont make api call, directly set the data from cache
+                setSuggestions(searchCache[searchQuery]);
+            }else{
+                getSearchSuggestions(); //If not presnet in cache, make api call, and update in a cache(using dispatch an action)
+            }
+        }, 200);
+
+        return () => {
+            clearTimeout(timer);
+        };
+    }, [searchQuery]);
+
+    const getSearchSuggestions = async() => {
+        console.log("Api call - " + searchQuery);
+        const data = await fetch(YOUTUBE_SEARCH_API + searchQuery);
+        const json = await data.json();
+        setSuggestions(json[1]);
+        dispatch(cacheResult({   //update cache
+            [searchQuery] : json[1] //can we suggestions in place of json[1] ?
+        })); 
+    };
+
 
     const toggleMenuHandler = () => {
         dispatch(toggleMenu());
@@ -31,11 +65,24 @@ const Head = () => {
                 </a>
             </div>
             <div className="col-span-10 px-10">
-                <input 
-                    className="w-1/2 border border-gray-400 p-2 rounded-l-full" 
-                    type="text" 
-                />
-                <button className="border border-gray-400 px-5 py-2 rounded-r-full bg-gray-100">🔍</button>
+                <div>
+                    <input 
+                        className="px-5 w-1/2 border border-gray-400 p-2 rounded-l-full" 
+                        type="text" 
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        onFocus={() => setshowSuggestions(true)}
+                        onBlur={() => setshowSuggestions(false)}
+                    />
+                    <button className="border border-gray-400 px-5 py-2 rounded-r-full bg-gray-100">🔍</button>
+                </div>
+                { showSuggestions && (
+                    <div className="fixed bg-white py-2 px-2 w-[32rem] shadow-lg rounded-lg border border-gray-100">
+                        <ul>
+                            {suggestions.map((s) => (<li key={s} className="py-2 px-3 shadow-sm hover:bg-gray-100"> {s} </li>))}
+                        </ul>
+                    </div>
+                )}
             </div>
             <div className="col-span-1">
                 <img 
