@@ -1,7 +1,33 @@
+import { useState, useEffect } from "react";
+import { YOUTUBE_VIDEOS_API } from "../utils/constants";
+import VideoCard from './VideoCard';
+import { Link } from "react-router-dom";
+
 const VideoContainer = () => {
+
+    const [videos, setVideos] = useState([]);
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const fetchData = async() => {
+        const data = await fetch(YOUTUBE_VIDEOS_API);
+        const json = await data.json();
+        // console.log(json.items);
+        setVideos(json.items);
+    }
+
     return (
-        <div>
-            VideoConatiner
+        <div className='flex flex-wrap px-5 py-3'>
+            {
+                videos.map(video => (
+                    <Link key={video.id} to={'/watch?v=' + video.id}>
+                        <VideoCard data={video}/>
+                    </Link>
+                ))
+            }
+            
         </div>
     )
 }
